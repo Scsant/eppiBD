@@ -1,0 +1,27 @@
+
+/* app/styles/custom.css */
+
+body {
+    background: linear-gradient(to bottom, #0f2c79, #94b447);
+    color: #ffffff;
+}
+
+select, textarea {
+    background-color: #7cc77c !important;
+    color: black !important;
+}
+
+.stButton > button {
+    background: linear-gradient(90deg,rgb(61, 64, 65) 0%, rgb(76, 77, 78) 50%, rgb(90, 90, 79) 100%);
+    color: #ffffff;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.stTextInput input {
+    font-weight: bold;
+}
+
+h1, h2, h3, h4 {
+    color: #ffffff;
+}
