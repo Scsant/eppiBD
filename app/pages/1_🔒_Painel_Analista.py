@@ -1,13 +1,11 @@
-# app/pages/1_🔒_Painel_Analista.py
-
 import streamlit as st
 import pandas as pd
 from io import BytesIO
-from services.supabase_service import listar_solicitacoes, excluir_por_ids, limpar_todas_solicitacoes
+from services.supabase_service import listar_solicitacoes, excluir_por_ids, limpar_todas_solicitacoes, listar_requisicoes_sap_agrupadas
 
 st.set_page_config(page_title="Painel do Analista", layout="wide")
 
-# Autenticação simples
+# 🔐 Autenticação
 senha = st.text_input("Digite a senha", type="password")
 if senha != "Gabi2906#":
     st.error("Acesso restrito.")
@@ -15,82 +13,82 @@ if senha != "Gabi2906#":
 
 st.success("Acesso autorizado")
 
-# Consulta os dados
+# 📥 Consulta a view com JOINs
 solicitacoes = listar_solicitacoes()
-
 if not solicitacoes:
     st.info("Nenhuma solicitação encontrada.")
     st.stop()
 
-# Agrupamento por categoria de frota
-df_analise = pd.DataFrame(solicitacoes)
-
-def classificar_frota(frota: str) -> str:
-    frota = frota.lower() if frota else ""
-    if "leste" in frota or "oeste" in frota:
-        return "Transporte de Madeira"
-    elif "carregamento" in frota:
-        return "Carregamento"
-    elif "pátio" in frota or "patio" in frota:
-        return "Pátio de Madeira"
-    return "Outros"
-
-df_analise["categoria_frota"] = df_analise["frota"].apply(classificar_frota)
-contagem = df_analise["categoria_frota"].value_counts()
-
-# Mostrar balança por categoria
-categorias = ["Transporte de Madeira", "Carregamento", "Pátio de Madeira"]
-colunas = st.columns(len(categorias))
-
-for col, categoria in zip(colunas, categorias):
-    total = contagem.get(categoria, 0)
-    col.metric(label=f"Solicitações - {categoria}", value=total)
-
-# Montagem da tabela com opções
 df = pd.DataFrame(solicitacoes)
+
+# ✅ Adiciona a coluna antes de qualquer exibição
 df["Selecionar"] = False
-df.set_index("id", inplace=True)
 
-st.markdown("### Solicitações de EPIs")
 
-# Marcar todos
+
+
+st.markdown("### 📋 Solicitações Pendentes para Aprovação")
+
+# ✅ Marcar todos
 select_all = st.checkbox("Selecionar todas as solicitações")
 if select_all:
     df["Selecionar"] = True
 
-# Seletor para múltiplas exclusões
+# ✅ Multiselect amigável
 selecionados = st.multiselect(
     "Selecione as solicitações a excluir:",
     options=df.index.tolist(),
     format_func=lambda x: f"{df.loc[x, 'nome']} - {df.loc[x, 'matricula']}"
 )
 
-# Mostrar tabela
+# ✅ Visualização final com marcação
 st.dataframe(df.drop(columns=["Selecionar"]), use_container_width=True)
 
+# 🔘 Ações
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("Excluir Selecionados") and selecionados:
+    if st.button("❌ Excluir Selecionados") and selecionados:
         excluir_por_ids(selecionados)
         st.success(f"{len(selecionados)} solicitações excluídas.")
+        st.rerun()
+
+    # 🧹 Limpar base inteira
+    if st.button("🧹 Limpar Base Completa"):
+        limpar_todas_solicitacoes()
+        st.success("Base de solicitações limpa com sucesso.")
         st.experimental_rerun()
 
-with col2:
-    if st.button("Exportar para Excel"):
+
+
+
+with st.sidebar:
+    st.markdown("### 📤 Exportações Especiais")
+    if st.button("📥 Exportar para Excel"):
         buffer = BytesIO()
         df_export = df.drop(columns=["Selecionar"])
         df_export.to_excel(buffer, index=True)
         buffer.seek(0)
         st.download_button(
-            label="📥 Baixar Excel",
+            label="📄 Baixar Excel",
             data=buffer,
             file_name="solicitacoes_epi.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-# Botão para limpar base inteira
-if st.button("🧹 Limpar Base Completa"):
-    limpar_todas_solicitacoes()
-    st.success("Base de solicitações limpa com sucesso.")
-    st.experimental_rerun()
+    if st.button("📥 Baixar/SAP"):
+        dados_sap = listar_requisicoes_sap_agrupadas()
+        if dados_sap:
+            df_sap = pd.DataFrame(dados_sap)
+            buffer = BytesIO()
+            df_sap.to_excel(buffer, index=False)
+            buffer.seek(0)
+
+            st.download_button(
+                label="📄 Clique aqui para baixar (SAP)",
+                data=buffer,
+                file_name="requisicoes_sap.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.warning("Nenhuma requisição SAP encontrada.")

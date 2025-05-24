@@ -7,36 +7,44 @@ from datetime import datetime, timedelta
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def buscar_colaborador_por_matricula(matricula):
-    result = supabase.table("colaboradores").select("*").eq("matricula", matricula).eq("ativo", True).execute()
+def buscar_colaborador_por_matricula(matricula_raw):
+    try:
+        matricula = str(int(float(matricula_raw))).strip()
+    except:
+        return None
+
+    result = supabase.table("colaboradores") \
+        .select("*") \
+        .eq("matricula", matricula) \
+        .eq("ativo", True) \
+        .execute()
+
     if result.data:
         return result.data[0]
     return None
 
-# app/services/supabase_service.py
 
-def enviar_pedido_concatenado(colaborador, lista_itens):
-    tipos = ", ".join(item["tipo"] for item in lista_itens)
-    descricoes = ", ".join(item["descricao"] for item in lista_itens)
-    quantidades = ", ".join(str(item["quantidade"]) for item in lista_itens)
-    codigos_sap = ", ".join(item.get("codigo_sap", "") for item in lista_itens)
+
+def enviar_pedido_concatenado(colaborador, itens):
+    from datetime import datetime
+
+    tipos = [item.get("tipo") for item in itens if item.get("tipo")]
+    descricoes = [item.get("descricao") for item in itens if item.get("descricao")]
+    quantidades = [str(item.get("quantidade", 1)) for item in itens]
+    codigos_sap = [str(item.get("codigo_sap")) for item in itens if item.get("codigo_sap")]
 
     payload = {
-        "nome": colaborador["nome"],
-        "matricula": colaborador["matricula"],
-        "funcao": colaborador["funcao"],
-        "equipe": colaborador["equipe"],
-        "frota": colaborador.get("frota", ""),
-        "centro_custo": colaborador.get("centro_custo", ""),
-        "tipos": tipos,
-        "descricoes": descricoes,
-        "quantidades": quantidades,
-        "codigos_sap": codigos_sap,
-        "data_solicitacao": datetime.now().isoformat(),
-        "status": "PENDENTE"
+        "colaborador_id": colaborador["id"],
+        "tipos": ", ".join(tipos),
+        "descricoes": ", ".join(descricoes),
+        "quantidades": ", ".join(quantidades),
+        "codigos_sap": ", ".join(codigos_sap),
+        "status": "pendente",
+        "data_solicitacao": datetime.now().isoformat()
     }
 
-    supabase.table("solicitacoes_epi").insert(payload).execute()
+    response = supabase.table("solicitacoes_epi").insert(payload).execute()
+    print("✅ Pedido enviado:", response.data)
 
 
 # app/services/supabase_service.py (continue nesse arquivo)
@@ -53,21 +61,29 @@ def listar_epis_por_categoria(categoria):
 
 
 
-def colaborador_ja_solicitou_na_semana(matricula: str) -> bool:
+
+
+def colaborador_ja_solicitou_na_semana(colaborador_id: str) -> bool:
     hoje = datetime.now()
-    inicio_semana = hoje - timedelta(days=hoje.weekday() + 1)  # Domingo
+
+    # Define o início da semana (domingo às 00:00)
+    inicio_semana = hoje - timedelta(days=hoje.weekday() + 1)
     inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
 
     result = supabase.table("solicitacoes_epi") \
-        .select("data_solicitacao") \
-        .eq("matricula", matricula) \
+        .select("id") \
+        .eq("colaborador_id", colaborador_id) \
         .gte("data_solicitacao", inicio_semana.isoformat()) \
         .execute()
 
     return bool(result.data)
 
+#painel analista
 def listar_solicitacoes():
-    result = supabase.table("solicitacoes_epi").select("*").order("data_solicitacao", desc=True).execute()
+    result = supabase.table("vw_solicitacoes_analista") \
+        .select("*") \
+        .order("data_solicitacao", desc=True) \
+        .execute()
     return result.data
 
 def excluir_por_ids(lista_ids):
@@ -79,8 +95,27 @@ def limpar_todas_solicitacoes():
 
 
 def listar_colaboradores():
-    result = supabase.table("colaboradores").select("*").order("nome").execute()
-    return result.data
+    todos = []
+    batch_size = 1000
+    offset = 0
+
+    while True:
+        response = supabase.table("colaboradores") \
+            .select("*") \
+            .order("nome") \
+            .range(offset, offset + batch_size - 1) \
+            .execute()
+
+        data = response.data or []
+        todos.extend(data)
+
+        if len(data) < batch_size:
+            break
+
+        offset += batch_size
+
+    return todos
+
 
 def inserir_colaborador(data: dict):
     supabase.table("colaboradores").insert(data).execute()
@@ -93,4 +128,48 @@ def excluir_colaboradores(lista_ids):
         supabase.table("colaboradores").delete().eq("id", cid).execute()
 
 
+
+def listar_totais_por_setor():
+    response = supabase.table("vw_colaboradores_com_setor").select("*").execute()
+    return response.data
+
+def listar_colaboradores_com_setor():
+    todos = []
+    batch_size = 1000
+    offset = 0
+
+    while True:
+        response = supabase.table("vw_colaboradores_com_setor") \
+            .select("*") \
+            .order("nome") \
+            .range(offset, offset + batch_size - 1) \
+            .execute()
+
+        data = response.data or []
+        todos.extend(data)
+
+        if len(data) < batch_size:
+            break
+
+        offset += batch_size
+
+    return todos
+
+
+
+def buscar_quantidade_permitida(epi_nome):
+    result = supabase.table("epis") \
+        .select("quantidade_permitida") \
+        .eq("nome", epi_nome) \
+        .single() \
+        .execute()
+
+    if result.data:
+        return int(result.data["quantidade_permitida"])
+    return None
+def listar_requisicoes_sap_agrupadas():
+    result = supabase.table("vw_requisicoes_sap_agrupadas") \
+        .select("*") \
+        .execute()
+    return result.data
 

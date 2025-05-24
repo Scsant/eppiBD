@@ -7,6 +7,7 @@ from services.supabase_service import (
     listar_categorias_epis,
     colaborador_ja_solicitou_na_semana,
     listar_epis_por_categoria,
+    buscar_quantidade_permitida,
 )
 
 from datetime import datetime
@@ -47,30 +48,54 @@ def requisicao_form():
             quantidade = st.number_input("Quantidade", min_value=1, step=1)
 
             col1, col2 = st.columns(2)
+
+
             with col1:
                 if st.button("Adicionar ao Resumo"):
-                    item = {
-                        "tipo": categoria_selecionada,
-                        "descricao": nome_epi,
-                        "quantidade": quantidade
-                    }
-                    st.session_state.itens_pedido.append(item)
-                    st.success("Item adicionado ao resumo.")
+                    descricao = nome_epi.strip().lower()
+                    ja_existe = any(descricao == i["descricao"].strip().lower() for i in st.session_state.itens_pedido)
+
+                    if ja_existe:
+                        st.warning("Este item já foi adicionado ao resumo.")
+                    else:
+                        item = {
+                            "tipo": categoria_selecionada,
+                            "descricao": nome_epi,
+                            "quantidade": quantidade
+                        }
+                        st.session_state.itens_pedido.append(item)
+                        st.success("Item adicionado ao resumo.")
+
+
 
             with col2:
                 if st.button("Enviar Solicitações"):
-                    if colaborador_ja_solicitou_na_semana(colaborador["matricula"]):
+                    if colaborador_ja_solicitou_na_semana(colaborador["id"]):
+
                         st.error("Você já fez uma solicitação nesta semana. Aguarde até domingo para uma nova requisição.")
                     elif st.session_state.itens_pedido:
-                        enviar_pedido_concatenado(colaborador, st.session_state.itens_pedido)
-                        st.success("Solicitação enviada com sucesso!")
-                        st.session_state.itens_pedido.clear()
+                        try:
+                            enviar_pedido_concatenado(colaborador, st.session_state.itens_pedido)
+                            st.success("Solicitação enviada com sucesso!")
+                            st.session_state.itens_pedido.clear()
+                        except ValueError as e:
+                            st.error(str(e))
 
 
 
             if st.session_state.itens_pedido:
-                st.markdown("### Resumo dos Itens")
+                st.markdown("### 📝 Resumo dos Itens")
+
                 for i, item in enumerate(st.session_state.itens_pedido):
-                    st.write(f"{i+1}. {item['descricao']} ({item['tipo']}) - Quantidade: {item['quantidade']}")
+                    col1, col2, col3 = st.columns([5, 4, 1])
+                    with col1:
+                        st.write(f"📦 {item['descricao']} ({item['tipo']})")
+                    with col2:
+                        st.write(f"Quantidade: {item['quantidade']}")
+                    with col3:
+                        if st.button("❌", key=f"remover_{i}"):
+                            st.session_state.itens_pedido.pop(i)
+                            st.rerun()
+
         else:
             st.warning("Matrícula não encontrada.")
