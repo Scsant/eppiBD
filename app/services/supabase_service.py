@@ -179,7 +179,7 @@ def listar_colaboradores_com_detalhes():
     offset = 0
 
     while True:
-        response = supabase.table("vw_colaboradores_com_setor") \
+        response = supabase.table("vw_solicitacoes_detalhadas") \
             .select("*") \
             .range(offset, offset + batch_size - 1) \
             .order("nome") \
