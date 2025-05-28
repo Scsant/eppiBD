@@ -168,8 +168,29 @@ def buscar_quantidade_permitida(epi_nome):
         return int(result.data["quantidade_permitida"])
     return None
 def listar_requisicoes_sap_agrupadas():
-    result = supabase.table("vw_requisicoes_sap_agrupadas") \
+    result = supabase.table("vw_requisicoes_sap_agrupadas_final") \
         .select("*") \
         .execute()
     return result.data
 
+def listar_colaboradores_com_detalhes():
+    todos = []
+    batch_size = 1000
+    offset = 0
+
+    while True:
+        response = supabase.table("vw_colaboradores_com_setor") \
+            .select("*") \
+            .range(offset, offset + batch_size - 1) \
+            .order("nome") \
+            .execute()
+
+        data = response.data or []
+        todos.extend(data)
+
+        if len(data) < batch_size:
+            break
+
+        offset += batch_size
+
+    return todos

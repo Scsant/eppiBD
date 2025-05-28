@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
-from services.supabase_service import listar_solicitacoes, excluir_por_ids, limpar_todas_solicitacoes, listar_requisicoes_sap_agrupadas
+from services.supabase_service import listar_colaboradores_com_detalhes, listar_solicitacoes, excluir_por_ids, limpar_todas_solicitacoes, listar_requisicoes_sap_agrupadas
 
 st.set_page_config(page_title="Painel do Analista", layout="wide")
 
@@ -92,3 +92,22 @@ with st.sidebar:
             )
         else:
             st.warning("Nenhuma requisição SAP encontrada.")
+
+
+
+    st.markdown("### 📦 Baixar Base Unificada")
+    if st.button("📥 Baixar Base Unificada"):
+        base = listar_colaboradores_com_detalhes()
+        if base:
+            df_unificado = pd.DataFrame(base)
+            buffer = BytesIO()
+            df_unificado.to_excel(buffer, index=False)
+            buffer.seek(0)
+            st.download_button(
+                label="⬇️ Clique para baixar",
+                data=buffer,
+                file_name="colaboradores_unificados.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.warning("Nenhum dado disponível.")
