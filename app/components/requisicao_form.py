@@ -58,13 +58,20 @@ def requisicao_form():
                     if ja_existe:
                         st.warning("Este item já foi adicionado ao resumo.")
                     else:
-                        item = {
-                            "tipo": categoria_selecionada,
-                            "descricao": nome_epi,
-                            "quantidade": quantidade
-                        }
-                        st.session_state.itens_pedido.append(item)
-                        st.success("Item adicionado ao resumo.")
+                        quantidade_permitida = buscar_quantidade_permitida(nome_epi)
+
+                        if quantidade_permitida is None:
+                            st.error(f"Não foi possível encontrar o EPI {nome_epi} na base de dados.")
+                        elif quantidade > quantidade_permitida:
+                            st.error(f"A quantidade máxima permitida para {nome_epi} é {quantidade_permitida}.")
+                        else:
+                            item = {
+                                "tipo": categoria_selecionada,
+                                "descricao": nome_epi,
+                                "quantidade": quantidade
+                            }
+                            st.session_state.itens_pedido.append(item)
+                            st.success("Item adicionado ao resumo.")
 
 
 
