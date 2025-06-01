@@ -78,13 +78,13 @@ def colaborador_ja_solicitou_na_semana(colaborador_id: str) -> bool:
 
     return bool(result.data)
 
-#painel analista
 def listar_solicitacoes():
     result = supabase.table("vw_solicitacoes_analista") \
-        .select("*") \
+        .select("id, nome, matricula, funcao, equipe, frota, centro_custo, tipos, descricoes, quantidades, codigos_sap, status, data_solicitacao") \
         .order("data_solicitacao", desc=True) \
         .execute()
     return result.data
+
 
 def excluir_por_ids(lista_ids):
     for id_ in lista_ids:
