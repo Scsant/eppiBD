@@ -13,13 +13,15 @@ if senha != "Gabi2906#":
 
 st.success("Acesso autorizado")
 
-# 📥 Consulta a view com JOINs
 solicitacoes = listar_solicitacoes()
+
 if not solicitacoes:
     st.info("Nenhuma solicitação encontrada.")
     st.stop()
 
 df = pd.DataFrame(solicitacoes)
+df.set_index("id", inplace=True)  # 👈 importantíssimo aqui
+
 
 # ✅ Adiciona a coluna antes de qualquer exibição
 df["Selecionar"] = False
@@ -34,12 +36,12 @@ select_all = st.checkbox("Selecionar todas as solicitações")
 if select_all:
     df["Selecionar"] = True
 
-# ✅ Multiselect amigável
 selecionados = st.multiselect(
     "Selecione as solicitações a excluir:",
     options=df.index.tolist(),
     format_func=lambda x: f"{df.loc[x, 'nome']} - {df.loc[x, 'matricula']}"
 )
+
 
 # ✅ Visualização final com marcação
 st.dataframe(df.drop(columns=["Selecionar"]), use_container_width=True)
