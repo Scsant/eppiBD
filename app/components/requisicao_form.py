@@ -79,7 +79,7 @@ def requisicao_form():
                 if st.button("Enviar Solicitações"):
                     if colaborador_ja_solicitou_na_semana(colaborador["id"]):
 
-                        st.error("Você já fez uma solicitação nesta semana. Aguarde até domingo para uma nova requisição.")
+                        st.error("Você já fez uma solicitação nesta semana. Aguarde até a próxima semana para uma nova requisição.")
                     elif st.session_state.itens_pedido:
                         try:
                             enviar_pedido_concatenado(colaborador, st.session_state.itens_pedido)
