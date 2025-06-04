@@ -14,7 +14,7 @@ st.set_page_config(page_title="Cadastro de Colaboradores", layout="wide")
 
 # 🔐 Autenticação
 senha = st.text_input("Digite a senha", type="password")
-if senha != "Gabi2906#":
+if senha != "Troca@2025":
     st.error("Acesso restrito.")
     st.stop()
 
