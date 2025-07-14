@@ -13,7 +13,7 @@ st.set_page_config(page_title="Cadastro de EPIs", layout="wide")
 
 # 🔐 Autenticação
 senha = st.text_input("Digite a senha", type="password")
-if senha != "Troca@2025":
+if senha != "Gabi2906#":
     st.error("Acesso restrito.")
     st.stop()
 
