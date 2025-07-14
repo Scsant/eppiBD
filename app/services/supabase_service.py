@@ -192,3 +192,18 @@ def listar_colaboradores_com_detalhes():
         offset += batch_size
 
     return todos
+
+
+def inserir_epi(data: dict):
+    supabase.table("epis").insert(data).execute()
+
+def atualizar_epi(epi_id: str, data: dict):
+    supabase.table("epis").update(data).eq("id", epi_id).execute()
+
+def excluir_epi(epi_id: str):
+    supabase.table("epis").delete().eq("id", epi_id).execute()
+
+
+def listar_epi_por_equipe_formatado():
+    result = supabase.table("vw_epi_por_equipe_formatado").select("*").execute()
+    return result.data

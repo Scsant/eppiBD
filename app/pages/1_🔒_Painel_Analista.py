@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
-from services.supabase_service import listar_colaboradores_com_detalhes, listar_solicitacoes, excluir_por_ids, limpar_todas_solicitacoes, listar_requisicoes_sap_agrupadas
+from services.supabase_service import listar_colaboradores_com_detalhes, listar_solicitacoes, excluir_por_ids, limpar_todas_solicitacoes, listar_requisicoes_sap_agrupadas, listar_epi_por_equipe_formatado
+import io
 
 st.set_page_config(page_title="Painel do Analista", layout="wide")
 
@@ -59,7 +60,7 @@ with col1:
     if st.button("🧹 Limpar Base Completa"):
         limpar_todas_solicitacoes()
         st.success("Base de solicitações limpa com sucesso.")
-        st.experimental_rerun()
+        st.rerun()
 
 
 
@@ -69,7 +70,8 @@ with st.sidebar:
     if st.button("📥 Exportar para Excel"):
         buffer = BytesIO()
         df_export = df.drop(columns=["Selecionar"])
-        df_export.to_excel(buffer, index=True)
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            df_export.to_excel(writer, index=True)
         buffer.seek(0)
         st.download_button(
             label="📄 Baixar Excel",
@@ -83,7 +85,8 @@ with st.sidebar:
         if dados_sap:
             df_sap = pd.DataFrame(dados_sap)
             buffer = BytesIO()
-            df_sap.to_excel(buffer, index=False)
+            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                df_sap.to_excel(writer, index=False)
             buffer.seek(0)
 
             st.download_button(
@@ -103,7 +106,8 @@ with st.sidebar:
         if base:
             df_unificado = pd.DataFrame(base)
             buffer = BytesIO()
-            df_unificado.to_excel(buffer, index=False)
+            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                df_unificado.to_excel(writer, index=False)
             buffer.seek(0)
             st.download_button(
                 label="⬇️ Clique para baixar",
@@ -113,3 +117,23 @@ with st.sidebar:
             )
         else:
             st.warning("Nenhum dado disponível.")
+
+# Após as ações principais (após col2):
+st.markdown("---")
+if st.button("🔍 Ver EPIs por Equipe (Carregamento)"):
+    dados_epi_equipe = listar_epi_por_equipe_formatado()
+    if dados_epi_equipe:
+        df_epi_equipe = pd.DataFrame(dados_epi_equipe)
+        st.dataframe(df_epi_equipe, use_container_width=True)
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            df_epi_equipe.to_excel(writer, index=False)
+        buffer.seek(0)
+        st.download_button(
+            label="📄 Baixar Excel (EPIs Carregamento)",
+            data=buffer,
+            file_name="epis_por_equipe.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.info("Nenhum dado encontrado na view vw_epi_por_equipe_formatado.")
